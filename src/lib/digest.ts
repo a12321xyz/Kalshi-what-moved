@@ -10,6 +10,7 @@ import type {
 import {
     fetchOpenEventsWithMarkets,
     fetchSettledEvents,
+    fetchRecentTrades,
     toNumber,
     toPercent,
 } from "@/lib/kalshi";
@@ -27,6 +28,9 @@ function marketTitle(m: RawMarket): string {
  * Compute current implied probability from available price fields.
  */
 function currentProb(m: RawMarket): number | null {
+    // Prefer numeric last_price (cents)
+    if (m.last_price != null && m.last_price > 0) return m.last_price;
+
     const last = toNumber(m.last_price_dollars);
     if (last !== null && last > 0) return toPercent(last);
 
@@ -38,54 +42,90 @@ function currentProb(m: RawMarket): number | null {
     return null;
 }
 
-/**
- * Compute previous implied probability from available previous-price fields.
- */
-function previousProb(m: RawMarket): number | null {
-    const prev = toNumber(m.previous_price_dollars);
-    if (prev !== null && prev > 0) return toPercent(prev);
+/* ── Movers: markets with the biggest trade-price changes ── */
 
-    const prevBid = toNumber(m.previous_yes_bid_dollars);
-    const prevAsk = toNumber(m.previous_yes_ask_dollars);
-    if (prevBid !== null && prevAsk !== null) return toPercent((prevBid + prevAsk) / 2);
-    if (prevBid !== null) return toPercent(prevBid);
-    if (prevAsk !== null) return toPercent(prevAsk);
-    return null;
+interface CandidateMarket {
+    market: RawMarket;
+    eventTitle: string;
+    category: string;
+    currentCents: number;
+    volume24h: number;
 }
 
-/* ── Movers: markets with the biggest price changes ── */
-
-function computeMovers(events: RawEvent[]): MoverEntry[] {
-    const movers: MoverEntry[] = [];
+/**
+ * Compute movers by fetching recent trades for the most liquid markets
+ * and comparing the oldest trade price to the latest trade price.
+ */
+async function computeMovers(events: RawEvent[]): Promise<MoverEntry[]> {
+    // Step 1: collect the most liquid active markets
+    const candidates: CandidateMarket[] = [];
 
     for (const event of events) {
         for (const m of event.markets ?? []) {
-            if (m.status !== "open") continue;
+            if (m.status !== "open" && m.status !== "active") continue;
 
+            const vol = m.volume_24h ?? (toNumber(m.volume_24h_fp) ?? 0);
             const curr = currentProb(m);
-            const prev = previousProb(m);
+            if (curr === null || curr <= 0) continue;
+            if (vol <= 0) continue;
 
-            if (curr === null || prev === null) continue;
-
-            const delta = curr - prev;
-
-            // Only include markets with meaningful movement (>= 0.5 cent)
-            if (Math.abs(delta) < 0.5) continue;
-
-            movers.push({
-                ticker: m.ticker,
-                eventTicker: m.event_ticker,
-                title: marketTitle(m),
+            candidates.push({
+                market: m,
                 eventTitle: event.title,
                 category: event.category || "General",
-                currentPrice: curr,
-                previousPrice: prev,
+                currentCents: curr,
+                volume24h: vol,
+            });
+        }
+    }
+
+    // Sort by volume descending, take top 50 most liquid
+    candidates.sort((a, b) => b.volume24h - a.volume24h);
+    const topCandidates = candidates.slice(0, 50);
+
+    if (topCandidates.length === 0) return [];
+
+    // Step 2: fetch recent trades for each in parallel (batched)
+    const BATCH_SIZE = 10;
+    const movers: MoverEntry[] = [];
+
+    for (let i = 0; i < topCandidates.length; i += BATCH_SIZE) {
+        const batch = topCandidates.slice(i, i + BATCH_SIZE);
+        const results = await Promise.all(
+            batch.map(async (c) => {
+                const trades = await fetchRecentTrades(c.market.ticker, 20);
+                return { candidate: c, trades };
+            })
+        );
+
+        for (const { candidate, trades } of results) {
+            if (trades.length < 2) continue;
+
+            // trades[0] = newest, trades[last] = oldest
+            const newestPrice = trades[0].yes_price;
+            const oldestPrice = trades[trades.length - 1].yes_price;
+
+            if (newestPrice <= 0 && oldestPrice <= 0) continue;
+
+            const delta = newestPrice - oldestPrice;
+
+            // Include any market with at least 1¢ movement
+            if (Math.abs(delta) < 1) continue;
+
+            movers.push({
+                ticker: candidate.market.ticker,
+                eventTicker: candidate.market.event_ticker,
+                title: marketTitle(candidate.market),
+                eventTitle: candidate.eventTitle,
+                category: candidate.category,
+                currentPrice: newestPrice,
+                previousPrice: oldestPrice,
                 priceDelta: delta,
                 direction: delta > 0 ? "up" : "down",
-                volume24h: toNumber(m.volume_24h_fp) ?? 0,
-                closeTime: m.close_time ?? null,
-                updatedTime: m.updated_time ?? null,
-                status: m.status ?? "unknown",
+                volume24h: candidate.volume24h,
+                closeTime: candidate.market.close_time ?? null,
+                updatedTime: candidate.market.updated_time ?? null,
+                status: candidate.market.status ?? "unknown",
             });
         }
     }
@@ -106,7 +146,7 @@ function computeVolumeLeaders(events: RawEvent[]): VolumeLeader[] {
 
     for (const event of events) {
         for (const m of event.markets ?? []) {
-            const vol = toNumber(m.volume_24h_fp) ?? 0;
+            const vol = m.volume_24h ?? (toNumber(m.volume_24h_fp) ?? 0);
             if (vol <= 0) continue;
 
             const price = currentProb(m) ?? 50;
@@ -168,7 +208,7 @@ async function buildFresh(): Promise<DigestSnapshot> {
         fetchSettledEvents(),
     ]);
 
-    const movers = computeMovers(openEvents);
+    const movers = await computeMovers(openEvents);
     const volumeLeaders = computeVolumeLeaders(openEvents);
     const settledMarkets = computeSettled(settledEvents);
 
@@ -177,7 +217,7 @@ async function buildFresh(): Promise<DigestSnapshot> {
     for (const e of openEvents) {
         for (const m of e.markets ?? []) {
             totalMarkets++;
-            totalVol += toNumber(m.volume_24h_fp) ?? 0;
+            totalVol += m.volume_24h ?? (toNumber(m.volume_24h_fp) ?? 0);
         }
     }
 
