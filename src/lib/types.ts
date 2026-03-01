@@ -12,14 +12,18 @@ export interface RawMarket {
     close_time?: string;
     open_time?: string;
     updated_time?: string;
+    last_price?: number;
     last_price_dollars?: string;
     previous_price_dollars?: string;
     previous_yes_bid_dollars?: string;
     previous_yes_ask_dollars?: string;
+    yes_bid?: number;
     yes_bid_dollars?: string;
+    yes_ask?: number;
     yes_ask_dollars?: string;
     no_bid_dollars?: string;
     no_ask_dollars?: string;
+    volume_24h?: number;
     volume_24h_fp?: string;
     open_interest_fp?: string;
     liquidity_dollars?: string;
@@ -48,6 +52,21 @@ export interface MarketsResponse {
 
 export interface MarketResponse {
     market: RawMarket;
+}
+
+export interface RawTrade {
+    trade_id: string;
+    ticker: string;
+    yes_price: number;
+    no_price: number;
+    count: number;
+    taker_side: string;
+    created_time: string;
+}
+
+export interface TradesResponse {
+    trades: RawTrade[];
+    cursor?: string;
 }
 
 /* ── App domain types ── */
