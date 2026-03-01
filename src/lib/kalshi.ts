@@ -1,4 +1,4 @@
-import type { EventsResponse, MarketsResponse, MarketResponse, RawMarket } from "@/lib/types";
+import type { EventsResponse, MarketsResponse, MarketResponse, RawMarket, TradesResponse } from "@/lib/types";
 
 const KALSHI_BASE_URL = "https://api.elections.kalshi.com/trade-api/v2";
 
@@ -122,6 +122,21 @@ export async function fetchMarketDetail(ticker: string): Promise<RawMarket> {
         `/markets/${encodeURIComponent(ticker)}`
     );
     return res.market;
+}
+
+export async function fetchRecentTrades(
+    ticker: string,
+    limit = 20
+): Promise<TradesResponse["trades"]> {
+    try {
+        const res = await requestKalshi<TradesResponse>("/markets/trades", {
+            ticker,
+            limit,
+        });
+        return res.trades ?? [];
+    } catch {
+        return [];
+    }
 }
 
 /* ── Helpers ── */
