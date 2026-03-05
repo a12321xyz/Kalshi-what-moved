@@ -29,10 +29,10 @@ function marketTitle(m: RawMarket): string {
  */
 function currentProb(m: RawMarket): number | null {
     // Prefer numeric last_price (cents)
-    if (m.last_price != null && m.last_price > 0) return m.last_price;
+    if (m.last_price != null && m.last_price >= 0) return m.last_price;
 
     const last = toNumber(m.last_price_dollars);
-    if (last !== null && last > 0) return toPercent(last);
+    if (last !== null && last >= 0) return toPercent(last);
 
     const bid = toNumber(m.yes_bid_dollars);
     const ask = toNumber(m.yes_ask_dollars);
@@ -191,7 +191,7 @@ function computeSettled(events: RawEvent[]): SettledMarket[] {
                 category: event.category || "General",
                 result: result === "yes" ? "Yes" : result === "no" ? "No" : result,
                 lastPrice: lp !== null ? toPercent(lp) : 0,
-                volume24h: toNumber(m.volume_24h_fp) ?? 0,
+                volume24h: m.volume_24h ?? (toNumber(m.volume_24h_fp) ?? 0),
             });
         }
     }
@@ -229,7 +229,7 @@ async function buildFresh(): Promise<DigestSnapshot> {
     const summary: DigestSummary = {
         totalMarkets,
         totalMovers: movers.length,
-        avgMovePercent: Math.round(avgMove * 10) / 10,
+        avgMoveCents: Math.round(avgMove * 10) / 10,
         totalVolume24h: totalVol,
         biggestMover: movers[0]?.title ?? null,
     };
@@ -261,6 +261,10 @@ export async function getDigest(): Promise<DigestSnapshot> {
                 })
                 .catch((err) => {
                     console.error("[digest] Background refresh failed:", err);
+                    // Extend TTL to prevent request storms during outages
+                    if (cache) {
+                        cache = { data: cache.data, expiresAt: Date.now() + CACHE_TTL_MS };
+                    }
                     return cache!.data;
                 })
                 .finally(() => {
