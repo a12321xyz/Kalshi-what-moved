@@ -113,7 +113,7 @@ export interface SettledMarket {
 export interface DigestSummary {
     totalMarkets: number;
     totalMovers: number;
-    avgMovePercent: number;
+    avgMoveCents: number;
     totalVolume24h: number;
     biggestMover: string | null;
 }
