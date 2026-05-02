@@ -1,5 +1,5 @@
 import type { MoverEntry } from "@/lib/types";
-import { formatVolume, safeFixed } from "@/lib/format";
+import { formatVolume, safeFixed, cleanEventTicker } from "@/lib/format";
 
 export default function MoverCard({ mover, rank }: { mover: MoverEntry; rank: number }) {
     const isUp = mover.direction === "up";
@@ -9,7 +9,7 @@ export default function MoverCard({ mover, rank }: { mover: MoverEntry; rank: nu
 
     return (
         <a
-            href={`https://kalshi.com/markets/${mover.eventTicker.toLowerCase()}?ticker=${mover.ticker}`}
+            href={`https://kalshi.com/markets/${cleanEventTicker(mover.eventTicker)}?ticker=${mover.ticker}`}
             target="_blank"
             rel="noopener noreferrer"
             className={`glass-card mover-card ${isUp ? "mover-card--up" : "mover-card--down"} ${isTop3 ? "mover-card--featured" : ""}`}

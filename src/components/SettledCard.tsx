@@ -1,12 +1,12 @@
 import type { SettledMarket } from "@/lib/types";
-import { safeFixed } from "@/lib/format";
+import { safeFixed, cleanEventTicker } from "@/lib/format";
 
 export default function SettledCard({ market }: { market: SettledMarket }) {
     const isYes = market.result === "Yes";
 
     return (
         <a
-            href={`https://kalshi.com/markets/${market.eventTicker.toLowerCase()}?ticker=${market.ticker}`}
+            href={`https://kalshi.com/markets/${cleanEventTicker(market.eventTicker)}?ticker=${market.ticker}`}
             target="_blank"
             rel="noopener noreferrer"
             className="glass-card settled-card"

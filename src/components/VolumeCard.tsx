@@ -1,5 +1,5 @@
 import type { VolumeLeader } from "@/lib/types";
-import { formatVolume, safeFixed } from "@/lib/format";
+import { formatVolume, safeFixed, cleanEventTicker } from "@/lib/format";
 
 export default function VolumeCard({
     leader,
@@ -11,7 +11,7 @@ export default function VolumeCard({
     const price = safeFixed(leader.currentPrice);
     return (
         <a
-            href={`https://kalshi.com/markets/${leader.eventTicker.toLowerCase()}?ticker=${leader.ticker}`}
+            href={`https://kalshi.com/markets/${cleanEventTicker(leader.eventTicker)}?ticker=${leader.ticker}`}
             target="_blank"
             rel="noopener noreferrer"
             className="glass-card volume-card"
