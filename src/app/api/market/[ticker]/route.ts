@@ -29,9 +29,16 @@ export async function GET(
         });
     } catch (err) {
         console.error(`[api/market/${ticker}]`, err);
+
+        // Propagate upstream status when available
+        const message =
+            err instanceof Error ? err.message : "Unknown error";
+        const isNotFound =
+            message.includes("404") || message.includes("not found");
+
         return NextResponse.json(
-            { error: "Market not found" },
-            { status: 404 }
+            { error: isNotFound ? "Market not found" : "Failed to fetch market data" },
+            { status: isNotFound ? 404 : 502 }
         );
     }
 }

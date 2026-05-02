@@ -1,4 +1,4 @@
-import type { EventsResponse, MarketsResponse, MarketResponse, RawMarket, TradesResponse } from "@/lib/types";
+import type { EventsResponse, MarketResponse, RawMarket, TradesResponse } from "@/lib/types";
 
 const KALSHI_BASE_URL = "https://api.elections.kalshi.com/trade-api/v2";
 
@@ -63,28 +63,7 @@ export async function requestKalshi<T>(
     throw new Error(`Kalshi failed after retries for ${url.pathname}`);
 }
 
-/* ── Convenience fetchers ── */
 
-export async function fetchAllOpenMarkets(): Promise<RawMarket[]> {
-    const all: RawMarket[] = [];
-    let cursor: string | undefined;
-
-    for (let page = 0; page < 10; page++) {
-        const params: Record<string, string | number | boolean> = {
-            status: "open",
-            limit: 1000,
-        };
-        if (cursor) params.cursor = cursor;
-
-        const res = await requestKalshi<MarketsResponse>("/markets", params);
-        all.push(...res.markets);
-
-        if (!res.cursor || res.markets.length < 1000) break;
-        cursor = res.cursor;
-    }
-
-    return all;
-}
 
 export async function fetchOpenEventsWithMarkets(): Promise<EventsResponse["events"]> {
     const all: EventsResponse["events"] = [];
@@ -134,7 +113,8 @@ export async function fetchRecentTrades(
             limit,
         });
         return res.trades ?? [];
-    } catch {
+    } catch (err) {
+        console.warn(`[kalshi] Failed to fetch trades for ${ticker}:`, (err as Error).message);
         return [];
     }
 }
