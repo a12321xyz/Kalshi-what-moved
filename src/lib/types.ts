@@ -58,8 +58,11 @@ export interface RawTrade {
     trade_id: string;
     ticker: string;
     yes_price: number;
+    yes_price_dollars?: string;
     no_price: number;
+    no_price_dollars?: string;
     count: number;
+    count_fp?: string;
     taker_side: string;
     created_time: string;
 }

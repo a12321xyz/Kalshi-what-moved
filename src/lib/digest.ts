@@ -10,7 +10,6 @@ import type {
 import {
     fetchOpenEventsWithMarkets,
     fetchSettledEvents,
-    fetchRecentTrades,
     toNumber,
     toPercent,
 } from "@/lib/kalshi";
@@ -20,8 +19,16 @@ const CACHE_TTL_MS = 60_000; // 1 minute
 let cache: { data: DigestSnapshot; expiresAt: number } | null = null;
 let inflight: Promise<DigestSnapshot> | null = null;
 
-function marketTitle(m: RawMarket): string {
-    return m.title || m.yes_sub_title || m.ticker;
+function marketTitle(m: RawMarket, eventTitle: string): string {
+    const sub = m.yes_sub_title || m.subtitle;
+    const main = m.title || m.ticker;
+
+    // If we have a specific option title (Rhode Island, New York, etc), use it
+    if (sub) return sub;
+
+    // If the main title is identical to the event title, it doesn't add value
+    // but if it's the only thing we have, we use it.
+    return main;
 }
 
 /**
@@ -42,23 +49,14 @@ function currentProb(m: RawMarket): number | null {
     return null;
 }
 
-/* ── Movers: markets with the biggest trade-price changes ── */
-
-interface CandidateMarket {
-    market: RawMarket;
-    eventTitle: string;
-    category: string;
-    currentCents: number;
-    volume24h: number;
-}
+/* ── Movers: markets with the biggest daily price changes ── */
 
 /**
- * Compute movers by fetching recent trades for the most liquid markets
- * and comparing the oldest trade price to the latest trade price.
+ * Compute movers by comparing the current price to the previous day's price
+ * for active markets with sufficient volume.
  */
 async function computeMovers(events: RawEvent[]): Promise<MoverEntry[]> {
-    // Step 1: collect the most liquid active markets
-    const candidates: CandidateMarket[] = [];
+    const movers: MoverEntry[] = [];
 
     for (const event of events) {
         for (const m of event.markets ?? []) {
@@ -67,69 +65,33 @@ async function computeMovers(events: RawEvent[]): Promise<MoverEntry[]> {
             const vol = m.volume_24h ?? (toNumber(m.volume_24h_fp) ?? 0);
             const curr = currentProb(m);
             if (curr === null || curr <= 0) continue;
-            if (vol <= 0) continue;
+            if (vol < 2500) continue;
 
-            candidates.push({
-                market: m,
-                eventTitle: event.title,
-                category: event.category || "General",
-                currentCents: curr,
-                volume24h: vol,
-            });
-        }
-    }
+            const prevRaw = toNumber(m.previous_price_dollars);
+            const prev = prevRaw !== null ? toPercent(prevRaw) : null;
+            
+            // If we don't have a previous price, we can't calculate a daily delta
+            if (prev === null) continue;
 
-    // Sort by volume descending, take top 50 most liquid
-    candidates.sort((a, b) => b.volume24h - a.volume24h);
-    const topCandidates = candidates.slice(0, 50);
+            const delta = curr - prev;
 
-    if (topCandidates.length === 0) return [];
-
-    // Step 2: fetch recent trades for each in parallel (batched)
-    const BATCH_SIZE = 10;
-    const movers: MoverEntry[] = [];
-
-    for (let i = 0; i < topCandidates.length; i += BATCH_SIZE) {
-        const batch = topCandidates.slice(i, i + BATCH_SIZE);
-        const results = await Promise.all(
-            batch.map(async (c) => {
-                const trades = await fetchRecentTrades(c.market.ticker, 20);
-                return { candidate: c, trades };
-            })
-        );
-
-        for (const { candidate, trades } of results) {
-            if (trades.length < 2) continue;
-
-            const sorted = [...trades].sort(
-                (a, b) => new Date(a.created_time).getTime() - new Date(b.created_time).getTime()
-            );
-            const oldestPrice = toNumber(sorted[0].yes_price);
-            const newestPrice = toNumber(sorted[sorted.length - 1].yes_price);
-
-            if (newestPrice === null || oldestPrice === null) continue;
-
-            if (newestPrice <= 0 && oldestPrice <= 0) continue;
-
-            const delta = newestPrice - oldestPrice;
-
-            // Include any market with at least 1¢ movement
+            // Include any market with at least 1 cent movement
             if (Math.abs(delta) < 1) continue;
 
             movers.push({
-                ticker: candidate.market.ticker,
-                eventTicker: candidate.market.event_ticker,
-                title: marketTitle(candidate.market),
-                eventTitle: candidate.eventTitle,
-                category: candidate.category,
-                currentPrice: newestPrice,
-                previousPrice: oldestPrice,
+                ticker: m.ticker,
+                eventTicker: m.event_ticker,
+                title: marketTitle(m, event.title),
+                eventTitle: event.title,
+                category: event.category || "General",
+                currentPrice: curr,
+                previousPrice: prev,
                 priceDelta: delta,
                 direction: delta > 0 ? "up" : "down",
-                volume24h: candidate.volume24h,
-                closeTime: candidate.market.close_time ?? null,
-                updatedTime: candidate.market.updated_time ?? null,
-                status: candidate.market.status ?? "unknown",
+                volume24h: vol,
+                closeTime: m.close_time ?? null,
+                updatedTime: m.updated_time ?? null,
+                status: m.status ?? "unknown",
             });
         }
     }
@@ -140,7 +102,7 @@ async function computeMovers(events: RawEvent[]): Promise<MoverEntry[]> {
             b.volume24h - a.volume24h
     );
 
-    return movers.slice(0, 20);
+    return movers.slice(0, 100);
 }
 
 /* ── Volume leaders ── */
@@ -158,7 +120,7 @@ function computeVolumeLeaders(events: RawEvent[]): VolumeLeader[] {
             leaders.push({
                 ticker: m.ticker,
                 eventTicker: m.event_ticker,
-                title: marketTitle(m),
+                title: marketTitle(m, event.title),
                 eventTitle: event.title,
                 category: event.category || "General",
                 currentPrice: price,
@@ -190,7 +152,7 @@ function computeSettled(events: RawEvent[]): SettledMarket[] {
             settled.push({
                 ticker: m.ticker,
                 eventTicker: m.event_ticker,
-                title: marketTitle(m),
+                title: marketTitle(m, event.title),
                 eventTitle: event.title,
                 category: event.category || "General",
                 result: result.toLowerCase() === "yes" ? "Yes" : result.toLowerCase() === "no" ? "No" : result,

@@ -5,7 +5,7 @@ const KALSHI_BASE_URL = "https://api.elections.kalshi.com/trade-api/v2";
 const TRANSIENT_STATUSES = new Set([429, 500, 502, 503, 504]);
 const MAX_RETRIES = 2;
 const RETRY_BASE_MS = 300;
-const TIMEOUT_MS = 10_000;
+const TIMEOUT_MS = 30_000;
 
 async function wait(ms: number): Promise<void> {
     await new Promise((r) => setTimeout(r, ms));
@@ -69,7 +69,7 @@ export async function fetchOpenEventsWithMarkets(): Promise<EventsResponse["even
     const all: EventsResponse["events"] = [];
     let cursor: string | undefined;
 
-    for (let page = 0; page < 5; page++) {
+    for (let page = 0; page < 10; page++) {
         const params: Record<string, string | number | boolean> = {
             status: "open",
             with_nested_markets: true,
