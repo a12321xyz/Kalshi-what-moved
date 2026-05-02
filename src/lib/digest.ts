@@ -14,11 +14,6 @@ import {
     toPercent,
 } from "@/lib/kalshi";
 
-const CACHE_TTL_MS = 60_000; // 1 minute
-
-let cache: { data: DigestSnapshot; expiresAt: number } | null = null;
-let inflight: Promise<DigestSnapshot> | null = null;
-
 function marketTitle(m: RawMarket, eventTitle: string): string {
     const sub = m.yes_sub_title || m.subtitle;
     const main = m.title || m.ticker;
@@ -212,48 +207,8 @@ async function buildFresh(): Promise<DigestSnapshot> {
 /* ── Cached digest accessor ── */
 
 export async function getDigest(): Promise<DigestSnapshot> {
-    const now = Date.now();
-
-    // Fresh cache
-    if (cache && cache.expiresAt > now) return cache.data;
-
-    // Stale-while-revalidate
-    if (cache && cache.expiresAt <= now) {
-        if (!inflight) {
-            const startMs = Date.now();
-            inflight = buildFresh()
-                .then((d) => {
-                    cache = { data: d, expiresAt: startMs + CACHE_TTL_MS };
-                    return d;
-                })
-                .catch((err) => {
-                    console.error("[digest] Background refresh failed:", err);
-                    if (cache) {
-                        cache = { data: cache.data, expiresAt: startMs + CACHE_TTL_MS };
-                    }
-                    return cache!.data;
-                })
-                .finally(() => {
-                    inflight = null;
-                });
-        }
-        return cache.data;
-    }
-
-    // Cold start
-    if (!inflight) {
-        inflight = buildFresh();
-    }
-
-    try {
-        const startMs = Date.now();
-        const data = await inflight;
-        cache = { data, expiresAt: startMs + CACHE_TTL_MS };
-        return data;
-    } catch (err) {
-        cache = null;
-        throw err;
-    } finally {
-        inflight = null;
-    }
+    // Rely on Vercel's CDN-level Cache-Control for SWR.
+    // Internal global variable caching is unreliable on serverless lambdas
+    // because background promises are suspended after the response is sent.
+    return buildFresh();
 }

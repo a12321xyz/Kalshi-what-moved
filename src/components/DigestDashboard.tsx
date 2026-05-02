@@ -137,7 +137,7 @@ export default function DigestDashboard() {
     useEffect(() => {
         const slowTimer = setTimeout(() => { if (loading) setSlowLoad(true); }, 15_000);
         fetchData();
-        const interval = setInterval(fetchData, 60_000);
+        const interval = setInterval(fetchData, 30_000);
         return () => {
             clearInterval(interval);
             clearTimeout(slowTimer);

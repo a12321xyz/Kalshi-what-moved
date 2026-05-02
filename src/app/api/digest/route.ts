@@ -9,7 +9,7 @@ export async function GET() {
         const digest = await getDigest();
         return NextResponse.json(digest, {
             headers: {
-                "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60",
+                "Cache-Control": "public, s-maxage=1, stale-while-revalidate=3600",
             },
         });
     } catch (err) {
