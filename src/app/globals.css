@@ -873,6 +873,29 @@ a.glass-card {
   font-size: 0.9rem;
 }
 
+/* Slow-load indicator below skeletons */
+.loading-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--muted-foreground);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.loading-hint__spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
 /* ============================================================================
    Error
    ============================================================================ */

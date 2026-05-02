@@ -81,6 +81,7 @@ export default function DigestDashboard() {
     const [loading, setLoading] = useState(true);
     const [theme, setTheme] = useState("dark");
     const [dismissedError, setDismissedError] = useState(false);
+    const [slowLoad, setSlowLoad] = useState(false);
 
     // Resolve actual theme on mount (avoids SSR hydration mismatch)
     useEffect(() => {
@@ -111,26 +112,37 @@ export default function DigestDashboard() {
 
     // Data fetching
     const fetchData = useCallback(async () => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 30_000);
         try {
-            const res = await fetch("/api/digest");
+            const res = await fetch("/api/digest", { signal: controller.signal });
             if (!res.ok) throw new Error(`API ${res.status}`);
             const json: DigestSnapshot = await res.json();
             setData(json);
             setError(null);
             setDismissedError(false);
+            setSlowLoad(false);
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to load data");
+            const message = (err instanceof Error && err.name === "AbortError")
+                ? "Request timed out — Kalshi API may be slow. Trying again soon."
+                : err instanceof Error ? err.message : "Failed to load data";
+            setError(message);
             setDismissedError(false);
         } finally {
+            clearTimeout(timer);
             setLoading(false);
         }
     }, []);
 
     useEffect(() => {
+        const slowTimer = setTimeout(() => { if (loading) setSlowLoad(true); }, 15_000);
         fetchData();
         const interval = setInterval(fetchData, 60_000);
-        return () => clearInterval(interval);
-    }, [fetchData]);
+        return () => {
+            clearInterval(interval);
+            clearTimeout(slowTimer);
+        };
+    }, [fetchData, loading]);
 
     // ─── Top Header ───
     const header = (
@@ -215,6 +227,13 @@ export default function DigestDashboard() {
                         </div>
                         <SkeletonCards count={3} />
                     </div>
+
+                    {slowLoad && (
+                        <div className="loading-hint animate-in">
+                            <div className="loading-hint__spinner" />
+                            <span>Fetching live Kalshi data — this may take a moment on first load&hellip;</span>
+                        </div>
+                    )}
                 </main>
             </>
         );
