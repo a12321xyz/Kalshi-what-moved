@@ -6,7 +6,7 @@ export default function SettledCard({ market }: { market: SettledMarket }) {
 
     return (
         <a
-            href={`https://kalshi.com/markets/${market.ticker}`}
+            href={`https://kalshi.com/markets/${market.eventTicker}?ticker=${market.ticker}`}
             target="_blank"
             rel="noopener noreferrer"
             className="glass-card settled-card"

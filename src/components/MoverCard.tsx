@@ -9,7 +9,7 @@ export default function MoverCard({ mover, rank }: { mover: MoverEntry; rank: nu
 
     return (
         <a
-            href={`https://kalshi.com/markets/${mover.ticker}`}
+            href={`https://kalshi.com/markets/${mover.eventTicker}?ticker=${mover.ticker}`}
             target="_blank"
             rel="noopener noreferrer"
             className={`glass-card mover-card ${isUp ? "mover-card--up" : "mover-card--down"} ${isTop3 ? "mover-card--featured" : ""}`}

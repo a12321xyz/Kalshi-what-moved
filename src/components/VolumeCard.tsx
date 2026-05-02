@@ -11,7 +11,7 @@ export default function VolumeCard({
     const price = safeFixed(leader.currentPrice);
     return (
         <a
-            href={`https://kalshi.com/markets/${leader.ticker}`}
+            href={`https://kalshi.com/markets/${leader.eventTicker}?ticker=${leader.ticker}`}
             target="_blank"
             rel="noopener noreferrer"
             className="glass-card volume-card"
