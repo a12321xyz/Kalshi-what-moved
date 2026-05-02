@@ -1,9 +1,8 @@
 import type { SettledMarket } from "@/lib/types";
+import { safeFixed } from "@/lib/format";
 
 export default function SettledCard({ market }: { market: SettledMarket }) {
     const isYes = market.result === "Yes";
-    const showEventTitle = market.eventTitle !== market.title;
-    const lastPriceAvailable = typeof market.lastPrice === "number" && !isNaN(market.lastPrice);
 
     return (
         <a
@@ -11,9 +10,9 @@ export default function SettledCard({ market }: { market: SettledMarket }) {
             target="_blank"
             rel="noopener noreferrer"
             className="glass-card settled-card"
-            aria-label={`${market.title}: Settled ${market.result}, last price ${market.lastPrice} cents`}
+            aria-label={`${market.title}: Settled ${market.result}, last price ${safeFixed(market.lastPrice, 0)} cents`}
         >
-            {showEventTitle && (
+            {market.eventTitle !== market.title && (
                 <div className="settled-card__event" title={market.eventTitle}>
                     {market.eventTitle}
                 </div>
@@ -28,11 +27,9 @@ export default function SettledCard({ market }: { market: SettledMarket }) {
                 >
                     {isYes ? "✓" : "✕"} {market.result}
                 </span>
-                {lastPriceAvailable && (
-                    <span className="settled-card__last-price">
-                        Last: {market.lastPrice.toFixed(0)}¢
-                    </span>
-                )}
+                <span className="settled-card__last-price">
+                    Last: {safeFixed(market.lastPrice, 0)}¢
+                </span>
                 <span className="card__category">{market.category}</span>
             </div>
         </a>

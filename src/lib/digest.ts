@@ -104,8 +104,10 @@ async function computeMovers(events: RawEvent[]): Promise<MoverEntry[]> {
             const sorted = [...trades].sort(
                 (a, b) => new Date(a.created_time).getTime() - new Date(b.created_time).getTime()
             );
-            const oldestPrice = sorted[0].yes_price;
-            const newestPrice = sorted[sorted.length - 1].yes_price;
+            const oldestPrice = toNumber(sorted[0].yes_price);
+            const newestPrice = toNumber(sorted[sorted.length - 1].yes_price);
+
+            if (newestPrice === null || oldestPrice === null) continue;
 
             if (newestPrice <= 0 && oldestPrice <= 0) continue;
 

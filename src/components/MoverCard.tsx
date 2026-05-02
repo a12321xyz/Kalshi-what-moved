@@ -1,10 +1,11 @@
 import type { MoverEntry } from "@/lib/types";
-import { formatVolume } from "@/lib/format";
+import { formatVolume, safeFixed } from "@/lib/format";
 
 export default function MoverCard({ mover, rank }: { mover: MoverEntry; rank: number }) {
     const isUp = mover.direction === "up";
     const sign = isUp ? "+" : "";
     const isTop3 = rank <= 3;
+    const delta = typeof mover.priceDelta === "number" && Number.isFinite(mover.priceDelta) ? mover.priceDelta : 0;
 
     return (
         <a
@@ -12,7 +13,7 @@ export default function MoverCard({ mover, rank }: { mover: MoverEntry; rank: nu
             target="_blank"
             rel="noopener noreferrer"
             className={`glass-card mover-card ${isUp ? "mover-card--up" : "mover-card--down"} ${isTop3 ? "mover-card--featured" : ""}`}
-            aria-label={`${mover.title}: ${sign}${mover.priceDelta.toFixed(1)} cents, current price ${mover.currentPrice.toFixed(1)} cents`}
+            aria-label={`${mover.title}: ${sign}${safeFixed(mover.priceDelta)} cents, current price ${safeFixed(mover.currentPrice)} cents`}
         >
             {isTop3 && (
                 <span className="mover-card__rank-badge">
@@ -30,18 +31,18 @@ export default function MoverCard({ mover, rank }: { mover: MoverEntry; rank: nu
                     </div>
                 </div>
                 <div className={`mover-card__delta ${isUp ? "mover-card__delta--up" : "mover-card__delta--down"}`}>
-                    {sign}{mover.priceDelta.toFixed(1)}¢
+                    {sign}{safeFixed(mover.priceDelta)}¢
                 </div>
             </div>
 
             <div className="mover-card__bottom">
                 <div className="mover-card__price">
-                    <span className="mover-card__current" aria-label={`Current price: ${mover.currentPrice.toFixed(1)} cents`}>
-                        {mover.currentPrice.toFixed(1)}¢
+                    <span className="mover-card__current" aria-label={`Current price: ${safeFixed(mover.currentPrice)} cents`}>
+                        {safeFixed(mover.currentPrice)}¢
                     </span>
                     <span className="mover-card__arrow" aria-hidden="true">←</span>
-                    <span className="mover-card__prev" aria-label={`Previous price: ${mover.previousPrice.toFixed(1)} cents`}>
-                        {mover.previousPrice.toFixed(1)}¢
+                    <span className="mover-card__prev" aria-label={`Previous price: ${safeFixed(mover.previousPrice)} cents`}>
+                        {safeFixed(mover.previousPrice)}¢
                     </span>
                 </div>
                 <div className="mover-card__volume">
@@ -57,7 +58,7 @@ export default function MoverCard({ mover, rank }: { mover: MoverEntry; rank: nu
             <div className="mover-card__bar" aria-hidden="true">
                 <div
                     className={`mover-card__bar-fill ${isUp ? "mover-card__bar-fill--up" : "mover-card__bar-fill--down"}`}
-                    style={{ width: `${Math.min(Math.abs(mover.priceDelta) * 2, 100)}%` }}
+                    style={{ width: `${Math.min(Math.abs(delta) * 2, 100)}%` }}
                 />
             </div>
         </a>

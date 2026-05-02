@@ -7,3 +7,8 @@ export function formatVolume(v: number): string {
     if (v >= 1_000) return `$${(v / 1_000).toFixed(1)}K`;
     return `$${Math.round(v).toLocaleString()}`;
 }
+
+export function safeFixed(v: unknown, digits = 1): string {
+    if (typeof v !== "number" || !Number.isFinite(v)) return "--";
+    return v.toFixed(digits);
+}

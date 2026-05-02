@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { DigestSnapshot } from "@/lib/types";
-import { formatVolume } from "@/lib/format";
+import { formatVolume, safeFixed } from "@/lib/format";
 import MoverCard from "./MoverCard";
 import VolumeCard from "./VolumeCard";
 import SettledCard from "./SettledCard";
@@ -280,7 +280,7 @@ export default function DigestDashboard() {
                     </div>
                     <div className="stat-card">
                         <div className="stat-card__value">
-                            {data.summary.avgMoveCents.toFixed(1)}¢
+                            {safeFixed(data.summary.avgMoveCents)}¢
                         </div>
                         <div className="stat-card__label">Avg. Move</div>
                     </div>

@@ -1,5 +1,5 @@
 import type { VolumeLeader } from "@/lib/types";
-import { formatVolume } from "@/lib/format";
+import { formatVolume, safeFixed } from "@/lib/format";
 
 export default function VolumeCard({
     leader,
@@ -8,13 +8,14 @@ export default function VolumeCard({
     leader: VolumeLeader;
     rank: number;
 }) {
+    const price = safeFixed(leader.currentPrice);
     return (
         <a
             href={`https://kalshi.com/markets/${leader.ticker}`}
             target="_blank"
             rel="noopener noreferrer"
             className="glass-card volume-card"
-            aria-label={`Rank ${rank}: ${leader.title}, volume ${formatVolume(leader.volume24h)}, current price ${leader.currentPrice.toFixed(1)} cents`}
+            aria-label={`Rank ${rank}: ${leader.title}, volume ${formatVolume(leader.volume24h)}, current price ${price} cents`}
         >
             <div className="volume-card__rank">{rank}</div>
 
@@ -33,8 +34,8 @@ export default function VolumeCard({
             </div>
 
             <div className="volume-card__price">
-                <div className="volume-card__price-value" aria-label={`Current price: ${leader.currentPrice.toFixed(1)} cents`}>
-                    {leader.currentPrice.toFixed(1)}¢
+                <div className="volume-card__price-value" aria-label={`Current price: ${price} cents`}>
+                    {price}¢
                 </div>
                 <div className="volume-card__price-label">current</div>
             </div>
