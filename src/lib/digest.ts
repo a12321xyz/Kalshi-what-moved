@@ -101,9 +101,11 @@ async function computeMovers(events: RawEvent[]): Promise<MoverEntry[]> {
         for (const { candidate, trades } of results) {
             if (trades.length < 2) continue;
 
-            // trades[0] = newest, trades[last] = oldest
-            const newestPrice = trades[0].yes_price;
-            const oldestPrice = trades[trades.length - 1].yes_price;
+            const sorted = [...trades].sort(
+                (a, b) => new Date(a.created_time).getTime() - new Date(b.created_time).getTime()
+            );
+            const oldestPrice = sorted[0].yes_price;
+            const newestPrice = sorted[sorted.length - 1].yes_price;
 
             if (newestPrice <= 0 && oldestPrice <= 0) continue;
 
@@ -189,7 +191,7 @@ function computeSettled(events: RawEvent[]): SettledMarket[] {
                 title: marketTitle(m),
                 eventTitle: event.title,
                 category: event.category || "General",
-                result: result === "yes" ? "Yes" : result === "no" ? "No" : result,
+                result: result.toLowerCase() === "yes" ? "Yes" : result.toLowerCase() === "no" ? "No" : result,
                 lastPrice: lp !== null ? toPercent(lp) : 0,
                 volume24h: m.volume_24h ?? (toNumber(m.volume_24h_fp) ?? 0),
             });
@@ -254,16 +256,16 @@ export async function getDigest(): Promise<DigestSnapshot> {
     // Stale-while-revalidate
     if (cache && cache.expiresAt <= now) {
         if (!inflight) {
+            const startMs = Date.now();
             inflight = buildFresh()
                 .then((d) => {
-                    cache = { data: d, expiresAt: Date.now() + CACHE_TTL_MS };
+                    cache = { data: d, expiresAt: startMs + CACHE_TTL_MS };
                     return d;
                 })
                 .catch((err) => {
                     console.error("[digest] Background refresh failed:", err);
-                    // Extend TTL to prevent request storms during outages
                     if (cache) {
-                        cache = { data: cache.data, expiresAt: Date.now() + CACHE_TTL_MS };
+                        cache = { data: cache.data, expiresAt: startMs + CACHE_TTL_MS };
                     }
                     return cache!.data;
                 })
@@ -280,8 +282,9 @@ export async function getDigest(): Promise<DigestSnapshot> {
     }
 
     try {
+        const startMs = Date.now();
         const data = await inflight;
-        cache = { data, expiresAt: Date.now() + CACHE_TTL_MS };
+        cache = { data, expiresAt: startMs + CACHE_TTL_MS };
         return data;
     } catch (err) {
         cache = null;

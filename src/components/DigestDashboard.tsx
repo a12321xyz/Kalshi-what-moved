@@ -120,6 +120,7 @@ export default function DigestDashboard() {
             setDismissedError(false);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to load data");
+            setDismissedError(false);
         } finally {
             setLoading(false);
         }
