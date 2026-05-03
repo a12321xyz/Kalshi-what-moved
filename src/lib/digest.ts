@@ -145,7 +145,7 @@ function computeVolumeLeaders(events: RawEvent[]): VolumeLeader[] {
     }
 
     leaders.sort((a, b) => b.volume24h - a.volume24h);
-    return leaders.slice(0, 100);
+    return leaders.slice(0, 50);
 }
 
 /* ── Build digest snapshot ── */
