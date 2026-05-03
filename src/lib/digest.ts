@@ -122,8 +122,8 @@ function computeVolumeLeaders(events: RawEvent[]): VolumeLeader[] {
         for (const m of event.markets ?? []) {
             // volume_24h_fp is a dollar-denominated string (e.g. "271.27" = $271)
             const vol = toNumber(m.volume_24h_fp) ?? m.volume_24h ?? 0;
-            // Only include markets with > $1,000 daily volume
-            if (vol < 1000) continue;
+            // Only include markets with > $5,000 daily volume
+            if (vol < 5000) continue;
 
             const price = currentProb(m) ?? 50;
 
@@ -142,7 +142,7 @@ function computeVolumeLeaders(events: RawEvent[]): VolumeLeader[] {
     }
 
     leaders.sort((a, b) => b.volume24h - a.volume24h);
-    return leaders.slice(0, 25);
+    return leaders.slice(0, 100);
 }
 
 /* ── Build digest snapshot ── */
