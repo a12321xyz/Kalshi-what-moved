@@ -82,9 +82,11 @@ export default function DigestDashboard() {
     const [theme, setTheme] = useState("dark");
     const [dismissedError, setDismissedError] = useState(false);
     const [slowLoad, setSlowLoad] = useState(false);
+    const [mounted, setMounted] = useState(false);
 
     // Resolve actual theme on mount (avoids SSR hydration mismatch)
     useEffect(() => {
+        setMounted(true);
         try {
             const stored = localStorage.getItem("whatmoved-theme");
             if (stored === "dark" || stored === "light") {
@@ -150,7 +152,7 @@ export default function DigestDashboard() {
             <div className="top-header__inner">
                 <div style={{ display: "flex", alignItems: "center" }}>
                     <span className="top-header__brand">WhatMoved</span>
-                    {data && (
+                    {data && mounted && (
                         <span className="top-header__badge">
                             <span className="top-header__badge-dot" />
                             Updated {timeAgo(data.generatedAt)}
@@ -167,7 +169,7 @@ export default function DigestDashboard() {
                         }
                         title={theme === "dark" ? "Light mode" : "Dark mode"}
                     >
-                        {theme === "dark" ? "☀️" : (
+                        {!mounted ? null : theme === "dark" ? "☀️" : (
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
                             </svg>

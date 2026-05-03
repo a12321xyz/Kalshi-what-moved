@@ -18,12 +18,20 @@ function marketTitle(m: RawMarket, eventTitle: string): string {
     const sub = m.yes_sub_title || m.subtitle;
     const main = m.title || m.ticker;
 
-    // If we have a specific option title (Rhode Island, New York, etc), use it
-    if (sub) return sub;
+    // If the subtitle exists and is different from the event title, use it.
+    // Often sub is "Yes" or "No" or a candidate name.
+    if (sub && sub.toLowerCase() !== eventTitle.toLowerCase()) {
+        return sub;
+    }
 
-    // If the main title is identical to the event title, it doesn't add value
-    // but if it's the only thing we have, we use it.
-    return main;
+    // If the main title is different from the event title, use it.
+    if (main && main.toLowerCase() !== eventTitle.toLowerCase()) {
+        return main;
+    }
+
+    // Fallback to the subtitle if it exists (even if it's "Yes"/"No"), 
+    // or finally the main title/ticker.
+    return sub || main;
 }
 
 /**
