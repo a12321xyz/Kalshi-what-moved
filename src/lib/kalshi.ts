@@ -116,15 +116,6 @@ export async function fetchOpenEventsWithMarkets(): Promise<EventsResponse["even
     return all;
 }
 
-export async function fetchSettledEvents(): Promise<EventsResponse["events"]> {
-    const res = await requestKalshi<EventsResponse>("/events", {
-        status: "settled",
-        with_nested_markets: true,
-        limit: 50,
-    });
-    return res.events;
-}
-
 export async function fetchMarketDetail(ticker: string): Promise<RawMarket> {
     const res = await requestKalshi<MarketResponse>(
         `/markets/${encodeURIComponent(ticker)}`

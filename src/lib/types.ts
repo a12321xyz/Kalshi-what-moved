@@ -102,17 +102,6 @@ export interface VolumeLeader {
     closeTime: string | null;
 }
 
-export interface SettledMarket {
-    ticker: string;
-    eventTicker: string;
-    title: string;
-    eventTitle: string;
-    category: string;
-    result: string;
-    lastPrice: number;
-    volume24h: number;
-}
-
 export interface DigestSummary {
     totalMarkets: number;
     totalMovers: number;
@@ -126,5 +115,4 @@ export interface DigestSnapshot {
     summary: DigestSummary;
     movers: MoverEntry[];
     volumeLeaders: VolumeLeader[];
-    settledMarkets: SettledMarket[];
 }

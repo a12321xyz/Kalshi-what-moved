@@ -5,7 +5,6 @@ import type { DigestSnapshot } from "@/lib/types";
 import { formatVolume, safeFixed } from "@/lib/format";
 import MoverCard from "./MoverCard";
 import VolumeCard from "./VolumeCard";
-import SettledCard from "./SettledCard";
 
 function timeAgo(iso: string): string {
     const diff = Date.now() - new Date(iso).getTime();
@@ -375,31 +374,6 @@ export default function DigestDashboard() {
                         ))}
                     </div>
                 </div>
-
-                {/* Recently Settled */}
-                <div
-                    className="section animate-in"
-                    style={{ animationDelay: "0.4s" }}
-                >
-                    <div className="section__header">
-                        <span className="section__icon">✅</span>
-                        <h2 className="section__title">Recently Settled</h2>
-                        <span className="section__count">
-                            {data.settledMarkets.length}
-                        </span>
-                    </div>
-                    <div className="cards-grid">
-                        {data.settledMarkets.map((s, i) => (
-                            <div
-                                key={s.ticker}
-                                className="animate-in"
-                                style={{ animationDelay: `${0.05 * i}s` }}
-                            >
-                                <SettledCard market={s} />
-                            </div>
-                        ))}
-                    </div>
-                </div>
             </main>
 
             {/* Footer */}
@@ -407,8 +381,7 @@ export default function DigestDashboard() {
                 <div className="footer__inner">
                     <p className="footer__brand">WhatMoved</p>
                     <p className="footer__desc">
-                        Daily snapshot of the biggest prediction market movers, volume leaders,
-                        and recently settled markets. Data refreshes every 60 seconds.
+                        Daily snapshot of the biggest prediction market movers and volume leaders. Data refreshes every 60 seconds.
                     </p>
                     <p className="footer__links">
                         Data from{" "}

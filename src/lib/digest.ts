@@ -3,13 +3,11 @@ import type {
     DigestSummary,
     MoverEntry,
     VolumeLeader,
-    SettledMarket,
     RawMarket,
     RawEvent,
 } from "@/lib/types";
 import {
     fetchOpenEventsWithMarkets,
-    fetchSettledEvents,
     toNumber,
     toPercent,
 } from "@/lib/kalshi";
@@ -144,59 +142,22 @@ function computeVolumeLeaders(events: RawEvent[]): VolumeLeader[] {
     }
 
     leaders.sort((a, b) => b.volume24h - a.volume24h);
-    return leaders.slice(0, 15);
-}
-
-/* ── Settled markets ── */
-
-function computeSettled(events: RawEvent[]): SettledMarket[] {
-    const settled: SettledMarket[] = [];
-
-    for (const event of events) {
-        for (const m of event.markets ?? []) {
-            if (m.status !== "settled" && m.status !== "finalized") continue;
-
-            const result = m.result ?? "";
-            if (!result) continue;
-
-            const lp = toNumber(m.last_price_dollars);
-
-            settled.push({
-                ticker: m.ticker,
-                eventTicker: m.event_ticker,
-                title: marketTitle(m, event.title),
-                eventTitle: event.title,
-                category: event.category || "General",
-                result: result.toLowerCase() === "yes" ? "Yes" : result.toLowerCase() === "no" ? "No" : result,
-                lastPrice: lp !== null ? toPercent(lp) : 0,
-                volume24h: m.volume_24h ?? (toNumber(m.volume_24h_fp) ?? 0),
-            });
-        }
-    }
-
-    settled.sort((a, b) => b.volume24h - a.volume24h);
-    return settled.slice(0, 12);
+    return leaders.slice(0, 25);
 }
 
 /* ── Build digest snapshot ── */
 
 async function buildFresh(): Promise<DigestSnapshot> {
     console.log("[digest] Starting fresh build...");
-    const [openEvents, settledEvents] = await Promise.all([
-        fetchOpenEventsWithMarkets(),
-        fetchSettledEvents(),
-    ]);
+    const openEvents = await fetchOpenEventsWithMarkets();
 
-    console.log(`[digest] Fetched ${openEvents.length} open events and ${settledEvents.length} settled events.`);
+    console.log(`[digest] Fetched ${openEvents.length} open events.`);
 
     const movers = await computeMovers(openEvents);
     console.log(`[digest] Computed ${movers.length} movers.`);
 
     const volumeLeaders = computeVolumeLeaders(openEvents);
     console.log(`[digest] Computed ${volumeLeaders.length} volume leaders.`);
-
-    const settledMarkets = computeSettled(settledEvents);
-    console.log(`[digest] Computed ${settledMarkets.length} settled markets.`);
 
     let totalMarkets = 0;
     let totalVol = 0;
@@ -225,7 +186,6 @@ async function buildFresh(): Promise<DigestSnapshot> {
         summary,
         movers,
         volumeLeaders,
-        settledMarkets,
     };
 }
 
