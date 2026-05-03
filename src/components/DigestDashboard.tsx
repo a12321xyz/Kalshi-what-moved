@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { DigestSnapshot } from "@/lib/types";
+import type { DigestSnapshot, MoverEntry } from "@/lib/types";
 import { formatVolume, safeFixed } from "@/lib/format";
 import MoverCard from "./MoverCard";
 import VolumeCard from "./VolumeCard";
+import VolumeRow from "./VolumeRow";
 
 function timeAgo(iso: string): string {
     const diff = Date.now() - new Date(iso).getTime();
@@ -333,25 +334,34 @@ export default function DigestDashboard() {
                                 <span className="section__count">
                                     {data.movers.length}
                                 </span>
-                                <span className="section__hint" style={{ fontSize: '0.72rem', color: 'var(--muted-foreground)', marginLeft: 'auto' }}>
-                                    Top 3 per category (+$50k Vol)
-                                </span>
                             </div>
-                            <div className="cards-grid">
-                                {data.movers.length > 0 ? (
-                                    data.movers.map((m, i) => (
-                                        <div
-                                            key={m.ticker}
-                                            className="animate-in"
-                                            style={{ animationDelay: `${0.05 * i}s` }}
-                                        >
-                                            <MoverCard mover={m} rank={i + 1} />
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="empty">No significant price movers today.</div>
-                                )}
-                            </div>
+
+                            {Object.entries(
+                                data.movers.reduce((acc, m) => {
+                                    if (!acc[m.category]) acc[m.category] = [];
+                                    acc[m.category].push(m);
+                                    return acc;
+                                }, {} as Record<string, MoverEntry[]>)
+                            ).sort((a, b) => b[1].length - a[1].length).map(([category, movers]) => (
+                                <div key={category} className="category-group animate-in">
+                                    <h3 className="category-group__title">{category}</h3>
+                                    <div className="cards-grid">
+                                        {movers.map((m, i) => (
+                                            <div
+                                                key={m.ticker}
+                                                className="animate-in"
+                                                style={{ animationDelay: `${0.02 * i}s` }}
+                                            >
+                                                <MoverCard mover={m} rank={i + 1} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                            
+                            {data.movers.length === 0 && (
+                                <div className="empty">No significant price movers today.</div>
+                            )}
                         </div>
                     </div>
 
@@ -368,15 +378,9 @@ export default function DigestDashboard() {
                                     {data.volumeLeaders.length}
                                 </span>
                             </div>
-                            <div className="sidebar-grid">
+                            <div className="volume-list">
                                 {data.volumeLeaders.map((v, i) => (
-                                    <div
-                                        key={v.ticker}
-                                        className="animate-in"
-                                        style={{ animationDelay: `${0.05 * i}s` }}
-                                    >
-                                        <VolumeCard leader={v} rank={i + 1} />
-                                    </div>
+                                    <VolumeRow key={v.ticker} leader={v} rank={i + 1} />
                                 ))}
                             </div>
                         </div>

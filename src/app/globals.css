@@ -481,6 +481,21 @@ button {
   font-weight: 600;
 }
 
+.category-group {
+  margin-bottom: 32px;
+}
+
+.category-group__title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
 /* ============================================================================
    Cards Grid
    ============================================================================ */
@@ -777,6 +792,86 @@ a.glass-card {
   justify-content: space-between;
   padding-top: 12px;
   border-top: 1px solid var(--border);
+}
+
+/* ============================================================================
+   Volume Row (Sidebar List)
+   ============================================================================ */
+
+.volume-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.volume-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid var(--border);
+}
+
+.volume-row:last-child {
+  border-bottom: none;
+}
+
+.volume-row:hover {
+  background: var(--muted);
+  transform: translateX(4px);
+}
+
+.volume-row__rank {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--primary);
+  opacity: 0.7;
+  width: 28px;
+}
+
+.volume-row__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.volume-row__title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.volume-row__event {
+  font-size: 0.72rem;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.volume-row__stats {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.volume-row__price {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.volume-row__vol {
+  font-size: 0.68rem;
+  color: var(--muted-foreground);
+  font-weight: 500;
 }
 
 /* ============================================================================
