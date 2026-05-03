@@ -72,8 +72,8 @@ async function computeMovers(events: RawEvent[]): Promise<MoverEntry[]> {
             const vol = toNumber(m.volume_24h_fp) ?? m.volume_24h ?? 0;
             const curr = currentProb(m);
             if (curr === null || curr <= 0) continue;
-            // Only include markets with > $10,000 daily volume
-            if (vol < 10000) continue;
+            // Only include markets with > $25,000 daily volume
+            if (vol < 25000) continue;
 
             const prevRaw = toNumber(m.previous_price_dollars);
             const prev = prevRaw !== null ? toPercent(prevRaw) : null;
@@ -122,8 +122,8 @@ function computeVolumeLeaders(events: RawEvent[]): VolumeLeader[] {
         for (const m of event.markets ?? []) {
             // volume_24h_fp is a dollar-denominated string (e.g. "271.27" = $271)
             const vol = toNumber(m.volume_24h_fp) ?? m.volume_24h ?? 0;
-            // Only include markets with > $10,000 daily volume
-            if (vol < 10000) continue;
+            // Only include markets with > $25,000 daily volume
+            if (vol < 25000) continue;
 
             const price = currentProb(m) ?? 50;
 
