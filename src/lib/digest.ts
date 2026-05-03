@@ -62,36 +62,35 @@ function currentProb(m: RawMarket): number | null {
  * for active markets with sufficient volume.
  */
 async function computeMovers(events: RawEvent[]): Promise<MoverEntry[]> {
-    const movers: MoverEntry[] = [];
+    const moversByCategory: Record<string, MoverEntry[]> = {};
 
     for (const event of events) {
+        const category = event.category || "General";
         for (const m of event.markets ?? []) {
             if (m.status !== "open" && m.status !== "active") continue;
 
-            // volume_24h_fp is a dollar-denominated string (e.g. "271.27" = $271)
             const vol = toNumber(m.volume_24h_fp) ?? m.volume_24h ?? 0;
             const curr = currentProb(m);
             if (curr === null || curr <= 0) continue;
-            // Only include markets with > $25,000 daily volume
-            if (vol < 25000) continue;
+            
+            // Increased threshold to $50,000 as requested
+            if (vol < 50000) continue;
 
             const prevRaw = toNumber(m.previous_price_dollars);
             const prev = prevRaw !== null ? toPercent(prevRaw) : null;
-            
-            // If we don't have a previous price, we can't calculate a daily delta
             if (prev === null) continue;
 
             const delta = curr - prev;
-
-            // Include any market with at least 1 cent movement
             if (Math.abs(delta) < 1) continue;
 
-            movers.push({
+            if (!moversByCategory[category]) moversByCategory[category] = [];
+            
+            moversByCategory[category].push({
                 ticker: m.ticker,
                 eventTicker: m.event_ticker,
                 title: marketTitle(m, event.title),
                 eventTitle: event.title,
-                category: event.category || "General",
+                category,
                 currentPrice: curr,
                 previousPrice: prev,
                 priceDelta: delta,
@@ -104,13 +103,17 @@ async function computeMovers(events: RawEvent[]): Promise<MoverEntry[]> {
         }
     }
 
-    movers.sort(
-        (a, b) =>
-            Math.abs(b.priceDelta) - Math.abs(a.priceDelta) ||
-            b.volume24h - a.volume24h
-    );
+    const finalMovers: MoverEntry[] = [];
+    for (const category in moversByCategory) {
+        const catMovers = moversByCategory[category];
+        // Sort by absolute price movement
+        catMovers.sort((a, b) => Math.abs(b.priceDelta) - Math.abs(a.priceDelta));
+        // Take top 3 of each category
+        finalMovers.push(...catMovers.slice(0, 3));
+    }
 
-    return movers;
+    // Finally sort all resulting movers by absolute delta for general relevance
+    return finalMovers.sort((a, b) => Math.abs(b.priceDelta) - Math.abs(a.priceDelta));
 }
 
 /* ── Volume leaders ── */
@@ -122,8 +125,8 @@ function computeVolumeLeaders(events: RawEvent[]): VolumeLeader[] {
         for (const m of event.markets ?? []) {
             // volume_24h_fp is a dollar-denominated string (e.g. "271.27" = $271)
             const vol = toNumber(m.volume_24h_fp) ?? m.volume_24h ?? 0;
-            // Only include markets with > $25,000 daily volume
-            if (vol < 25000) continue;
+            // Only include markets with > $50,000 daily volume
+            if (vol < 50000) continue;
 
             const price = currentProb(m) ?? 50;
 

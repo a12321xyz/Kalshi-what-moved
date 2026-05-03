@@ -268,7 +268,7 @@ export default function DigestDashboard() {
         <>
             {header}
 
-            <main className="container" style={{ paddingBottom: 40 }}>
+            <div className="content-wrapper" style={{ paddingBottom: 40 }}>
                 {showErrorBanner && (
                     <div className="error-banner animate-in">
                         <span>⚠️ Refresh failed — showing cached data</span>
@@ -323,58 +323,66 @@ export default function DigestDashboard() {
                     </div>
                 </div>
 
-                {/* Top Movers */}
-                <div
-                    className="section animate-in"
-                    style={{ animationDelay: "0.2s" }}
-                >
-                    <div className="section__header">
-                        <span className="section__icon">🔥</span>
-                        <h2 className="section__title">Top Movers</h2>
-                        <span className="section__count">{data.movers.length}</span>
-                    </div>
-                    {data.movers.length > 0 ? (
-                        <div className="cards-grid">
-                            {data.movers.map((m, i) => (
-                                <div
-                                    key={m.ticker}
-                                    className="animate-in"
-                                    style={{ animationDelay: `${0.05 * i}s` }}
-                                >
-                                    <MoverCard mover={m} rank={i + 1} />
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="empty">No significant movers right now.</div>
-                    )}
-                </div>
-
-                {/* Volume Leaders */}
-                <div
-                    className="section animate-in"
-                    style={{ animationDelay: "0.3s" }}
-                >
-                    <div className="section__header">
-                        <span className="section__icon">📊</span>
-                        <h2 className="section__title">Volume Leaders</h2>
-                        <span className="section__count">
-                            {data.volumeLeaders.length}
-                        </span>
-                    </div>
-                    <div className="cards-grid">
-                        {data.volumeLeaders.map((v, i) => (
-                            <div
-                                key={v.ticker}
-                                className="animate-in"
-                                style={{ animationDelay: `${0.05 * i}s` }}
-                            >
-                                <VolumeCard leader={v} rank={i + 1} />
+                <main className="container dashboard-layout">
+                    <div className="dashboard-main">
+                        {/* Top Movers */}
+                        <div className="section animate-in">
+                            <div className="section__header">
+                                <span className="section__icon">🚀</span>
+                                <h2 className="section__title">Top Price Movers</h2>
+                                <span className="section__count">
+                                    {data.movers.length}
+                                </span>
+                                <span className="section__hint" style={{ fontSize: '0.72rem', color: 'var(--muted-foreground)', marginLeft: 'auto' }}>
+                                    Top 3 per category (+$50k Vol)
+                                </span>
                             </div>
-                        ))}
+                            <div className="cards-grid">
+                                {data.movers.length > 0 ? (
+                                    data.movers.map((m, i) => (
+                                        <div
+                                            key={m.ticker}
+                                            className="animate-in"
+                                            style={{ animationDelay: `${0.05 * i}s` }}
+                                        >
+                                            <MoverCard mover={m} rank={i + 1} />
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="empty">No significant price movers today.</div>
+                                )}
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </main>
+
+                    <aside className="dashboard-sidebar">
+                        {/* Volume Leaders */}
+                        <div
+                            className="section animate-in"
+                            style={{ animationDelay: "0.2s" }}
+                        >
+                            <div className="section__header">
+                                <span className="section__icon">📊</span>
+                                <h2 className="section__title">Volume Leaders</h2>
+                                <span className="section__count">
+                                    {data.volumeLeaders.length}
+                                </span>
+                            </div>
+                            <div className="sidebar-grid">
+                                {data.volumeLeaders.map((v, i) => (
+                                    <div
+                                        key={v.ticker}
+                                        className="animate-in"
+                                        style={{ animationDelay: `${0.05 * i}s` }}
+                                    >
+                                        <VolumeCard leader={v} rank={i + 1} />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </aside>
+                </main>
+            </div>
 
             {/* Footer */}
             <footer className="footer">
