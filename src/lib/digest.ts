@@ -35,14 +35,19 @@ function marketTitle(m: RawMarket, eventTitle: string): string {
 }
 
 /**
- * Compute current implied probability from available price fields.
+ * Compute current implied probability (in cents, 0–100 scale).
+ *
+ * Field guide:
+ *  - `last_price`        — integer cents (0–100), already on the right scale
+ *  - `last_price_dollars` — decimal string in dollars (e.g. "0.63" → 63¢)
+ *  - `yes_bid/ask_dollars` — same dollar format, use midpoint as fallback
  */
 function currentProb(m: RawMarket): number | null {
-    // Prefer numeric last_price (cents)
-    if (m.last_price != null && m.last_price >= 0) return m.last_price;
+    // last_price is in cents; must be > 0 (0 = worthless/no price)
+    if (m.last_price != null && m.last_price > 0) return m.last_price;
 
     const last = toNumber(m.last_price_dollars);
-    if (last !== null && last >= 0) return toPercent(last);
+    if (last !== null && last > 0) return toPercent(last);
 
     const bid = toNumber(m.yes_bid_dollars);
     const ask = toNumber(m.yes_ask_dollars);
@@ -65,9 +70,11 @@ async function computeMovers(events: RawEvent[]): Promise<MoverEntry[]> {
         for (const m of event.markets ?? []) {
             if (m.status !== "open" && m.status !== "active") continue;
 
-            const vol = m.volume_24h ?? (toNumber(m.volume_24h_fp) ?? 0);
+            // volume_24h_fp is a dollar-denominated string (e.g. "271.27" = $271)
+            const vol = toNumber(m.volume_24h_fp) ?? m.volume_24h ?? 0;
             const curr = currentProb(m);
             if (curr === null || curr <= 0) continue;
+            // Only include markets with > $2,500 daily volume (filters ~96.6% dormant markets)
             if (vol < 2500) continue;
 
             const prevRaw = toNumber(m.previous_price_dollars);
@@ -115,8 +122,10 @@ function computeVolumeLeaders(events: RawEvent[]): VolumeLeader[] {
 
     for (const event of events) {
         for (const m of event.markets ?? []) {
-            const vol = m.volume_24h ?? (toNumber(m.volume_24h_fp) ?? 0);
-            if (vol <= 0) continue;
+            // volume_24h_fp is a dollar-denominated string (e.g. "271.27" = $271)
+            const vol = toNumber(m.volume_24h_fp) ?? m.volume_24h ?? 0;
+            // Only include markets with > $1,000 daily volume
+            if (vol < 1000) continue;
 
             const price = currentProb(m) ?? 50;
 
@@ -172,14 +181,22 @@ function computeSettled(events: RawEvent[]): SettledMarket[] {
 /* ── Build digest snapshot ── */
 
 async function buildFresh(): Promise<DigestSnapshot> {
+    console.log("[digest] Starting fresh build...");
     const [openEvents, settledEvents] = await Promise.all([
         fetchOpenEventsWithMarkets(),
         fetchSettledEvents(),
     ]);
 
+    console.log(`[digest] Fetched ${openEvents.length} open events and ${settledEvents.length} settled events.`);
+
     const movers = await computeMovers(openEvents);
+    console.log(`[digest] Computed ${movers.length} movers.`);
+
     const volumeLeaders = computeVolumeLeaders(openEvents);
+    console.log(`[digest] Computed ${volumeLeaders.length} volume leaders.`);
+
     const settledMarkets = computeSettled(settledEvents);
+    console.log(`[digest] Computed ${settledMarkets.length} settled markets.`);
 
     let totalMarkets = 0;
     let totalVol = 0;

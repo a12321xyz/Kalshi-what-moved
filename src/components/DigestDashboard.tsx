@@ -115,7 +115,7 @@ export default function DigestDashboard() {
     // Data fetching
     const fetchData = useCallback(async () => {
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 30_000);
+        const timer = setTimeout(() => controller.abort(), 55_000);
         try {
             const res = await fetch("/api/digest", { signal: controller.signal });
             if (!res.ok) throw new Error(`API ${res.status}`);
@@ -137,14 +137,19 @@ export default function DigestDashboard() {
     }, []);
 
     useEffect(() => {
-        const slowTimer = setTimeout(() => { if (loading) setSlowLoad(true); }, 15_000);
-        fetchData();
-        const interval = setInterval(fetchData, 30_000);
+        // Slow-load hint: show a message if the first load takes > 8s
+        const slowTimer = setTimeout(() => setSlowLoad(true), 8_000);
+        fetchData().finally(() => clearTimeout(slowTimer));
+
+        // Poll every 60 seconds for fresh data
+        const interval = setInterval(fetchData, 60_000);
         return () => {
             clearInterval(interval);
             clearTimeout(slowTimer);
         };
-    }, [fetchData, loading]);
+        // fetchData is stable (wrapped in useCallback with no deps)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // ─── Top Header ───
     const header = (
