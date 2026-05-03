@@ -108,8 +108,8 @@ async function computeMovers(events: RawEvent[]): Promise<MoverEntry[]> {
         const catMovers = moversByCategory[category];
         // Sort by absolute price movement
         catMovers.sort((a, b) => Math.abs(b.priceDelta) - Math.abs(a.priceDelta));
-        // Take top 3 of each category
-        finalMovers.push(...catMovers.slice(0, 3));
+        // Take top 10 of each category
+        finalMovers.push(...catMovers.slice(0, 10));
     }
 
     // Finally sort all resulting movers by absolute delta for general relevance
